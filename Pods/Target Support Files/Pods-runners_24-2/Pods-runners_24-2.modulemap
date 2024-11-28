@@ -1,0 +1,6 @@
+framework module Pods_runners_24_2 {
+  umbrella header "Pods-runners_24-2-umbrella.h"
+
+  export *
+  module * { export * }
+}
