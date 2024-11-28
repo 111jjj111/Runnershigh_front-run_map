@@ -11,6 +11,7 @@ struct RunMapView: View {
     
     var body: some View {
         ZStack {
+            // 지도 뷰
             NaverMapView(mapView: $mapView, onUpdateDistance: updateDistance)
                 .frame(width: UIScreen.main.bounds.width, height: 500)
                 .cornerRadius(10)
@@ -35,26 +36,50 @@ struct RunMapView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                 }
-                .frame(maxWidth: 280)
+                .frame(maxWidth: 300)
                 .padding()
                 .background(Color.white.opacity(0.8))
                 .cornerRadius(15)
-                .shadow(radius: 5)
-                .padding(.bottom, 20)
+//                .shadow(radius: 5)
+                .padding(.bottom, 15)
                 
                 // 시작/정지 버튼
                 Button(action: toggleStopwatch) {
                     Text(isRunning ? "Stop" : "Start")
-                        .frame(maxWidth: 150)
+                        .frame(maxWidth: 200)
                         .padding()
                         .background(isRunning ? Color.gray : Color.accentColor)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
                 .padding(.horizontal, 16)
+                .padding(.bottom, 30)
+            }
+            
+            // 현재 위치 버튼
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    NaverMapView.CurrentLocationButton {
+                        moveToCurrentLocation()
+                    }
+                    .padding(.trailing, 25)
+                    .padding(.bottom, 330)
+                }
             }
         }
     }
+    
+    private func moveToCurrentLocation() {
+        guard let mapView = mapView else { return }
+        let locationOverlay = mapView.locationOverlay
+        let location = locationOverlay.location // `location`은 옵셔널이 아님
+        let cameraUpdate = NMFCameraUpdate(scrollTo: location)
+        cameraUpdate.animation = .easeIn
+        mapView.moveCamera(cameraUpdate)
+    }
+
     
     // 스톱워치 토글
     private func toggleStopwatch() {
@@ -98,6 +123,17 @@ struct NaverMapView: UIViewRepresentable {
     @Binding var mapView: NMFMapView?
     var onUpdateDistance: (Double) -> Void // 거리 업데이트 콜백
     
+    static func CurrentLocationButton(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "location.fill")
+                .padding()
+                .background(Color.white)
+                .clipShape(Circle())
+                .shadow(radius: 3)
+        }
+    }
+    
+
     class Coordinator: NSObject, CLLocationManagerDelegate {
         var parent: NaverMapView
         let locationManager = CLLocationManager()
@@ -163,6 +199,7 @@ struct NaverMapView: UIViewRepresentable {
     
     func updateUIView(_ uiView: NMFMapView, context: Context) {}
 }
+
 
 struct RunMapView_Previews: PreviewProvider {
     static var previews: some View {
