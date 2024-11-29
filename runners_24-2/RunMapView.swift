@@ -1,13 +1,15 @@
 import SwiftUI
 import NMapsMap
 import CoreLocation
-
+import WebKit
 struct RunMapView: View {
     @State private var mapView: NMFMapView?
     @State private var elapsedTime: TimeInterval = 0 // 경과 시간 (초)
     @State private var distanceTraveled: Double = 0.0 // 달린 거리 (Km)
     @State private var timer: Timer? // 타이머
     @State private var isRunning: Bool = false // 타이머 실행 상태
+    @State private var showStartDialog: Bool = false // 시작 Dialog 표시 여부
+    @State private var showWebView: Bool = false // WebView 표시 여
     
     var body: some View {
         ZStack {
@@ -44,7 +46,13 @@ struct RunMapView: View {
                 .padding(.bottom, 15)
                 
                 // 시작/정지 버튼
-                Button(action: toggleStopwatch) {
+                Button(action: {
+                    if isRunning {
+                        toggleStopwatch()
+                    } else {
+                        showStartDialog = true
+                    }
+                }) {
                     Text(isRunning ? "Stop" : "Start")
                         .frame(maxWidth: 200)
                         .padding()
@@ -54,6 +62,20 @@ struct RunMapView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 30)
+                .alert(isPresented: $showStartDialog) {
+                    Alert(
+                        title: Text("러닝 시작").font(.headline),
+                        message: Text("어떻게 러닝을 시작하시겠습니까?").font(.subheadline),
+                        primaryButton: .default(Text("달리러 가기")) {
+                            startSoloRun()
+                        },
+                        secondaryButton: .default(Text("약속잡기")) {
+                            showWebView = true
+                        }
+                    )
+                }
+                
+
             }
             
             // 현재 위치 버튼
@@ -65,22 +87,28 @@ struct RunMapView: View {
                         moveToCurrentLocation()
                     }
                     .padding(.trailing, 25)
-                    .padding(.bottom, 330)
+                    .padding(.bottom, 310)
                 }
             }
+        }
+        .sheet(isPresented: $showWebView) {
+            MyWebview(urlToLoad: "https://runnershigh-web.vercel.app/")
         }
     }
     
     private func moveToCurrentLocation() {
         guard let mapView = mapView else { return }
         let locationOverlay = mapView.locationOverlay
-        let location = locationOverlay.location // `location`은 옵셔널이 아님
+        let location = locationOverlay.location
         let cameraUpdate = NMFCameraUpdate(scrollTo: location)
         cameraUpdate.animation = .easeIn
         mapView.moveCamera(cameraUpdate)
     }
 
-    
+    private func startSoloRun() {
+        toggleStopwatch()
+    }
+
     // 스톱워치 토글
     private func toggleStopwatch() {
         if isRunning {
@@ -133,6 +161,18 @@ struct NaverMapView: UIViewRepresentable {
         }
     }
     
+    struct WebView: UIViewRepresentable {
+        let url: URL
+
+        func makeUIView(context: Context) -> WKWebView {
+            let webView = WKWebView()
+            let request = URLRequest(url: url)
+            webView.load(request)
+            return webView
+        }
+
+        func updateUIView(_ uiView: WKWebView, context: Context) {}
+    }
 
     class Coordinator: NSObject, CLLocationManagerDelegate {
         var parent: NaverMapView
